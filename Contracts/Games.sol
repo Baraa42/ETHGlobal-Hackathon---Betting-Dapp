@@ -85,10 +85,16 @@ contract Games {
             require(msg.value == 1 ether, "not right stake");
         }
         else if (betType == BetType.Lay) {
-            uint amount = 1 ether * ( _odds -1);
+            uint amount = ( _odds -100) * 1 ether / 100;
             require(msg.value == amount, "not right stake");
 
         }
+        _;
+    }
+
+   // we take _odds >100 then real odds is _odds /100 e.g 350 correspond to 3.5 odds
+    modifier isValidOdds(uint _odds) {
+        require(_odds>100, "unvalid odds");
         _;
     }
 
@@ -134,7 +140,8 @@ contract Games {
 
     }
 
-    function placeBet(BetType _betType, Selection _selection, uint _odds) public payable isValidStake(_betType, _odds) isValidBet(_selection) isStarted(block.timestamp)  {
+// function for placing the bet
+    function placeBet(BetType _betType, Selection _selection, uint _odds) public payable isValidStake(_betType, _odds) isValidBet(_selection) isOpen()  {
 
          
 
@@ -152,6 +159,7 @@ contract Games {
                 layBetsAvailable[_selection][_odds]-=1;
                 address payable layPlayer = layBets[_selection][_odds][layId].player;
                 incrementPotentialPayout(payable(msg.sender), _odds,  _selection, BetType.Back);
+                incrementWithStake(payable(msg.sender), _odds, _selection, BetType.Back);
                 incrementPotentialPayout(layPlayer, _odds,  _selection, BetType.Lay);
                 firstIdofLayBetAvailable[_selection][_odds]+=1;
                 emit betMatched(msg.sender, layPlayer,  _odds,  _selection);
@@ -162,7 +170,8 @@ contract Games {
            
 
             else if (layBetsAvailable[_selection][_odds] == 0) {
-                layBetsAvailable[_selection][_odds]+=1;
+                backBetsAvailable[_selection][_odds]+=1;
+                incrementWithStake(payable(msg.sender), _odds, _selection, BetType.Back);
                 emit unmatchedBetCreated(msg.sender,  _odds,  _selection,  _betType);
             }
             
@@ -184,6 +193,7 @@ contract Games {
                 backBetsAvailable[_selection][_odds]-=1;
                 address payable backPlayer = backBets[_selection][_odds][backId].player;
                 incrementPotentialPayout(payable(msg.sender), _odds,  _selection, BetType.Lay);
+                incrementWithStake(payable(msg.sender), _odds, _selection, BetType.Lay);
                 incrementPotentialPayout(backPlayer, _odds,  _selection, BetType.Back);
                 firstIdofBackBetAvailable[_selection][_odds]+=1;
                 emit betMatched(backPlayer, msg.sender,  _odds,  _selection);
@@ -194,7 +204,8 @@ contract Games {
            
 
             else if (backBetsAvailable[_selection][_odds] == 0) {
-                backBetsAvailable[_selection][_odds]+=1;
+                layBetsAvailable[_selection][_odds]+=1;
+                incrementWithStake(payable(msg.sender), _odds, _selection, BetType.Lay);
                 emit unmatchedBetCreated(msg.sender,  _odds,  _selection,  _betType);
             }
             
@@ -208,10 +219,10 @@ contract Games {
 
 
 
-// increments the playerPayout of the player after a bet
+// increments the playerPayout of the player with potential winning 
     function incrementPotentialPayout(address payable _player, uint _odds, Selection _selection, BetType _betType) internal {
         if (_betType == BetType.Back) {
-            playerPayout[_player][_selection] += (_odds - 1)* 1 ether;
+            playerPayout[_player][_selection] += (_odds - 100)* 1 ether/100;
         }
 
         else if (_betType == BetType.Lay) {
@@ -229,6 +240,48 @@ contract Games {
             }
         }
     }
+
+// increment playerPayout with his stake
+    function incrementWithStake(address payable _player, uint _odds, Selection _selection, BetType _betType) internal {
+        if (_betType == BetType.Back) {
+            playerPayout[_player][_selection] += 1 ether;
+        }
+
+        else if (_betType == BetType.Lay) {
+            if(_selection == Selection.Home) {
+                playerPayout[_player][Selection.Draw] += (_odds -100) * 1 ether / 100;
+                playerPayout[_player][Selection.Away] += (_odds -100) * 1 ether / 100;
+            }
+            else if(_selection == Selection.Draw) {
+                playerPayout[_player][Selection.Home] += (_odds -100) * 1 ether / 100;
+                playerPayout[_player][Selection.Away] += (_odds -100) * 1 ether / 100;
+            }
+            else if(_selection == Selection.Away) {
+                playerPayout[_player][Selection.Home] += (_odds -100) * 1 ether / 100;
+                playerPayout[_player][Selection.Draw] += (_odds -100) * 1 ether / 100;
+            }
+        }
+    }
+
+
+//   returns current player current payout
+    function getPayout(address payable _player, Selection _selection) public view returns(uint) {
+        uint _payout = playerPayout[_player][_selection];
+        return _payout;
+    }  
+
+    function getBackBetsAvailable(Selection _selection, uint _odds) public view returns(uint) {
+        uint backbets = backBetsAvailable[_selection][_odds];
+        return backbets;
+    }
+
+    function getLayBetsAvailable(Selection _selection, uint _odds) public view returns(uint) {
+        uint laybets = layBetsAvailable[_selection][_odds];
+        return laybets;
+    }
+
+
+
     // player call payout to get paid
     function payout() public isOver() returns(bool) {
         address payable _player = payable(msg.sender);
