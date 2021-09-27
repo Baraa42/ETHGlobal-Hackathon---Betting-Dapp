@@ -42,7 +42,7 @@ contract Games {
         address payable player;
         BetType betType;
         Selection selection;
-        //uint stake; gonna assume only 1 ether bet allowed
+        //uint stake; gonna assume only 0.001 ether bet allowed
         uint odds;
         BetStatus status;
        
@@ -82,10 +82,10 @@ contract Games {
 
     modifier isValidStake(BetType betType, uint _odds) {
         if (betType == BetType.Back){
-            require(msg.value == 1 ether, "not right stake");
+            require(msg.value == 0.001 ether, "not right stake");
         }
         else if (betType == BetType.Lay) {
-            uint amount = ( _odds -100) * 1 ether / 100;
+            uint amount = ( _odds -100) * 0.001 ether / 100;
             require(msg.value == amount, "not right stake");
 
         }
@@ -159,7 +159,7 @@ contract Games {
                 layBetsAvailable[_selection][_odds]-=1;
                 address payable layPlayer = layBets[_selection][_odds][layId].player;
                 incrementPotentialPayout(payable(msg.sender), _odds,  _selection, BetType.Back);
-                incrementWithStake(payable(msg.sender), _odds, _selection, BetType.Back);
+                incrementWithStake(payable(msg.sender), _odds, BetType.Back);
                 decrementWithStake(payable(msg.sender), _odds, _selection, BetType.Back);
                 decrementWithStake(layPlayer, _odds, _selection, BetType.Lay);
                 incrementPotentialPayout(layPlayer, _odds,  _selection, BetType.Lay);
@@ -173,7 +173,7 @@ contract Games {
 
             else if (layBetsAvailable[_selection][_odds] == 0) {
                 backBetsAvailable[_selection][_odds]+=1;
-                incrementWithStake(payable(msg.sender), _odds, _selection, BetType.Back);
+                incrementWithStake(payable(msg.sender), _odds,  BetType.Back);
                 emit unmatchedBetCreated(msg.sender,  _odds,  _selection,  _betType);
             }
             
@@ -195,7 +195,7 @@ contract Games {
                 backBetsAvailable[_selection][_odds]-=1;
                 address payable backPlayer = backBets[_selection][_odds][backId].player;
                 incrementPotentialPayout(payable(msg.sender), _odds,  _selection, BetType.Lay);
-                incrementWithStake(payable(msg.sender), _odds, _selection, BetType.Lay);
+                incrementWithStake(payable(msg.sender), _odds,  BetType.Lay);
                 decrementWithStake(payable(msg.sender), _odds, _selection, BetType.Lay);
                 decrementWithStake(backPlayer, _odds, _selection, BetType.Back);
                 incrementPotentialPayout(backPlayer, _odds,  _selection, BetType.Back);
@@ -209,7 +209,7 @@ contract Games {
 
             else if (backBetsAvailable[_selection][_odds] == 0) {
                 layBetsAvailable[_selection][_odds]+=1;
-                incrementWithStake(payable(msg.sender), _odds, _selection, BetType.Lay);
+                incrementWithStake(payable(msg.sender), _odds,  BetType.Lay);
                 emit unmatchedBetCreated(msg.sender,  _odds,  _selection,  _betType);
             }
             
@@ -226,37 +226,37 @@ contract Games {
 // increments the playerPayout of the player with potential winning 
     function incrementPotentialPayout(address payable _player, uint _odds, Selection _selection, BetType _betType) internal {
         if (_betType == BetType.Back) {
-            playerPayout[_player][_selection] += (_odds - 100)* 1 ether/100;
+            playerPayout[_player][_selection] += (_odds - 100)* 0.001 ether/100;
         }
 
         else if (_betType == BetType.Lay) {
             if(_selection == Selection.Home) {
-                playerPayout[_player][Selection.Draw] += 1 ether;
-                playerPayout[_player][Selection.Away] += 1 ether;
+                playerPayout[_player][Selection.Draw] += 0.001 ether;
+                playerPayout[_player][Selection.Away] += 0.001 ether;
             }
             else if(_selection == Selection.Draw) {
-                playerPayout[_player][Selection.Home] += 1 ether;
-                playerPayout[_player][Selection.Away] += 1 ether;
+                playerPayout[_player][Selection.Home] += 0.001 ether;
+                playerPayout[_player][Selection.Away] += 0.001 ether;
             }
             else if(_selection == Selection.Away) {
-                playerPayout[_player][Selection.Home] += 1 ether;
-                playerPayout[_player][Selection.Draw] += 1 ether;
+                playerPayout[_player][Selection.Home] += 0.001 ether;
+                playerPayout[_player][Selection.Draw] += 0.001 ether;
             }
         }
     }
 
 // increment playerPayout with his stake
-    function incrementWithStake(address payable _player, uint _odds, Selection _selection, BetType _betType) internal {
+    function incrementWithStake(address payable _player, uint _odds,  BetType _betType) internal {
         if (_betType == BetType.Back) {
-            playerPayout[_player][Selection.Draw] += 1 ether;
-            playerPayout[_player][Selection.Away] += 1 ether;
-            playerPayout[_player][Selection.Home] += 1 ether;
+            playerPayout[_player][Selection.Draw] += 0.001 ether;
+            playerPayout[_player][Selection.Away] += 0.001 ether;
+            playerPayout[_player][Selection.Home] += 0.001 ether;
         }
 
         else if (_betType == BetType.Lay) {
-            playerPayout[_player][Selection.Away] += (_odds -100) * 1 ether / 100;
-            playerPayout[_player][Selection.Home] += (_odds -100) * 1 ether / 100;
-            playerPayout[_player][Selection.Draw] += (_odds -100) * 1 ether / 100;
+            playerPayout[_player][Selection.Away] += (_odds -100) * 0.001 ether / 100;
+            playerPayout[_player][Selection.Home] += (_odds -100) * 0.001 ether / 100;
+            playerPayout[_player][Selection.Draw] += (_odds -100) * 0.001 ether / 100;
 
         }
     }
@@ -264,23 +264,23 @@ contract Games {
     function decrementWithStake(address payable _player, uint _odds, Selection _selection, BetType _betType) internal {
         if (_betType == BetType.Back) {
             if(_selection == Selection.Home) {
-                playerPayout[_player][Selection.Draw] -= 1 ether;
-                playerPayout[_player][Selection.Away] -= 1 ether;
+                playerPayout[_player][Selection.Draw] -= 0.001 ether;
+                playerPayout[_player][Selection.Away] -= 0.001 ether;
             }
             else if(_selection == Selection.Draw) {
-                playerPayout[_player][Selection.Home] -= 1 ether;
-                playerPayout[_player][Selection.Away] -= 1 ether;
+                playerPayout[_player][Selection.Home] -= 0.001 ether;
+                playerPayout[_player][Selection.Away] -= 0.001 ether;
             }
             else if(_selection == Selection.Away) {
-                playerPayout[_player][Selection.Home] -= 1 ether;
-                playerPayout[_player][Selection.Draw] -= 1 ether;
+                playerPayout[_player][Selection.Home] -= 0.001 ether;
+                playerPayout[_player][Selection.Draw] -= 0.001 ether;
             }
         }
             
         
 
         else if (_betType == BetType.Lay) {
-            playerPayout[_player][_selection] -= (_odds -100) * 1 ether / 100;
+            playerPayout[_player][_selection] -= (_odds -100) * 0.001 ether / 100;
             
 
         }
